@@ -1,4 +1,5 @@
-import { ListenerCallback, PluginListenerHandle } from '@capacitor/core';
+import type { PluginListenerHandle } from '@capacitor/core';
+
 export interface AndroidAutoPlugin {
   /**
    * Aggiorna lo stato del player musicale
@@ -41,8 +42,4 @@ export interface PlayerState {
 export interface ButtonPressedEvent {
   button: 'play' | 'pause' | 'next' | 'previous' | 'stop';
   timestamp: number;
-}
-
-export interface PluginListenerHandle {
-  remove: () => Promise<void>;
 }
