@@ -25,7 +25,7 @@ jobs:
     - name: 🔧 Install dependencies
       run: | 
         npm install  
-        cat packge-lock.json
+        cat package-lock.json
       
     - name: 📦 Setup Node.js
       uses: actions/setup-node@v4
