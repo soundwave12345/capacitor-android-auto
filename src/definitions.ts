@@ -1,3 +1,4 @@
+import { ListenerCallback, PluginListenerHandle } from '@capacitor/core';
 export interface AndroidAutoPlugin {
   /**
    * Aggiorna lo stato del player musicale
