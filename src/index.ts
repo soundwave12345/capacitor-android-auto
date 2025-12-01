@@ -1,5 +1,4 @@
 import { registerPlugin } from '@capacitor/core';
-
 import type { AndroidAutoPlugin } from './definitions';
 
 const AndroidAuto = registerPlugin<AndroidAutoPlugin>('AndroidAuto', {
