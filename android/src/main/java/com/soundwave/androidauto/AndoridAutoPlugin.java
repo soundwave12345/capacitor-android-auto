@@ -1,4 +1,4 @@
-package com.yourcompany.androidauto;
+package com.soundwave.androidauto;
 
 import android.content.Intent;
 import android.util.Log;
