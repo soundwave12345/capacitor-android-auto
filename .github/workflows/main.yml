@@ -22,10 +22,6 @@ jobs:
         java-version: '17'
         cache: 'gradle'
         
-    - name: 🔧 Install dependencies
-      run: | 
-        npm install  
-        cat package-lock.json
       
     - name: 📦 Setup Node.js
       uses: actions/setup-node@v4
