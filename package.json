@@ -31,11 +31,12 @@
     "verify": "npm run verify:android && npm run verify:web",
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
     "verify:web": "tsc --noEmit",
+    "docgen": "docgen --api AndroidAuto --verbose --output-readme README.md --output-json dist/docs.json"
     "build": "npm run clean && tsc && npm run docgen && rollup -c rollup.config.js",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
-    "docgen": "docgen --api AndroidAuto --verbose --output-readme README.md --output-json dist/docs.json"
+    
   },
   "devDependencies": {
     "@capacitor/android": "^7.0.0",
