@@ -1,1 +1,76 @@
+name: Build Android Plugin
 
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: ☕ Setup Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: 'gradle'
+        
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: 🔧 Install dependencies
+      run: npm ci
+      
+    - name: 🏗️ Build TypeScript
+      run: npm run build
+      
+    - name: ✅ Verify TypeScript
+      run: npm run verify:web
+      
+    - name: 🔨 Build Android
+      working-directory: ./android
+      run: |
+        echo "🔍 Checking Gradle Wrapper..."
+        if [ ! -f "gradlew" ]; then
+          echo "⚠️ gradlew non trovato, lo genero..."
+          gradle wrapper --gradle-version=8.11.1
+        fi
+        chmod +x gradlew
+        echo "🏗️ Building Android..."
+        ./gradlew clean build --info --stacktrace
+      
+    - name: 📊 Upload build reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-reports
+        path: android/build/reports/
+        
+    - name: 📦 Upload AAR
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-aar
+        path: android/build/outputs/aar/*.aar
+        
+    - name: ✅ Build Success
+      if: success()
+      run: |
+        echo "✅ Build completata con successo!"
+        echo "📦 Artifacts disponibili per il download"
+        
+    - name: ❌ Build Failed
+      if: failure()
+      run: |
+        echo "❌ Build fallita!"
+        echo "📋 Controlla i logs per i dettagli"
