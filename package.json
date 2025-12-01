@@ -35,7 +35,7 @@
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
-    "docgen": "docgen --api AndroidAutoPlugin --output-readme README.md --output-json dist/docs.json"
+    "docgen": "docgen --api AndroidAuto --output-readme README.md --output-json dist/docs.json"
   },
   "devDependencies": {
     "@capacitor/android": "^7.0.0",
