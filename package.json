@@ -32,7 +32,7 @@
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
     "verify:web": "tsc --noEmit",
     "docgen": "docgen --api AndroidAutoPlugin --verbose --output-readme README.md --output-json dist/docs.json",
-    "build": "npm run clean && tsc && cat dist/esm/index.d.ts && npm run docgen && rollup -c rollup.config.js",
+    "build": "npm run clean && tsc && ls -lR && cat dist/esm/index.d.ts && npm run docgen && rollup -c rollup.config.js",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build"
