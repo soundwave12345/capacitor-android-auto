@@ -1,0 +1,60 @@
+{
+  "name": "capacitor-android-auto",
+  "version": "1.0.0",
+  "description": "Capacitor plugin for Android Auto music player UI",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "unpkg": "dist/plugin.js",
+  "files": [
+    "android/",
+    "dist/",
+    "src/"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/capacitor-android-auto.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/capacitor-android-auto/issues"
+  },
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native",
+    "android",
+    "android-auto"
+  ],
+  "scripts": {
+    "verify": "npm run verify:android && npm run verify:web",
+    "verify:android": "cd android && ./gradlew clean build test && cd ..",
+    "verify:web": "tsc --noEmit",
+    "build": "npm run clean && npm run docgen && tsc && rollup -c rollup.config.js",
+    "clean": "rimraf ./dist",
+    "watch": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "docgen": "docgen --api AndroidAutoPlugin --output-readme README.md --output-json dist/docs.json"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/docgen": "^0.2.0",
+    "@ionic/prettier-config": "^4.0.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-java": "^2.0.0",
+    "rimraf": "^5.0.0",
+    "rollup": "^4.0.0",
+    "typescript": "~5.6.0"
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^7.0.0"
+  },
+  "prettier": "@ionic/prettier-config",
+  "capacitor": {
+    "android": {
+      "src": "android"
+    }
+  }
+}
