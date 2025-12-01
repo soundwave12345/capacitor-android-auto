@@ -1,0 +1,5 @@
+{
+  "pluginId": "AndroidAuto",
+  "pluginPackageName": "com.soundwave.androidauto",
+  "pluginClassName": "AndroidAutoPlugin"
+}
