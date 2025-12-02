@@ -31,7 +31,7 @@
     "verify": "npm run verify:android && npm run verify:web",
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
     "verify:web": "tsc --noEmit",
-    "docgen": "docgen --api AndroidAutoPlugin --debug --verbose",
+    "docgen": "docgen --api AndroidAutoPlugin --debug --verbose --output-readme README.md --output-json dist/docs.json",
     "build": "npm run clean && tsc && ls -lR ./dist && cat dist/esm/index.d.ts && npm run docgen && rollup -c rollup.config.js",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
