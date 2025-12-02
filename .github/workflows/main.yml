@@ -52,7 +52,7 @@ jobs:
         fi
         chmod +x gradlew
         echo "🏗️ Building Android..."
-        ./gradlew clean build --info --stacktrace
+        ./gradlew clean compileDebugJavaWithJavac --debug --stacktrace
       
     - name: 📊 Upload build reports
       if: always()
