@@ -1,26 +1,29 @@
-# Capacitor 7 Android Auto Plugin
+# Capacitor 7 Android Auto Plugin (MediaBrowserService)
 
-Plugin Capacitor 7 per integrare Android Auto con UI per player musicale.
+Plugin Capacitor 7 per integrare Android Auto con **MediaBrowserService** per app musicali.
 
 [![Build](https://github.com/YOUR_USERNAME/capacitor-android-auto/actions/workflows/build.yml/badge.svg)](https://github.com/YOUR_USERNAME/capacitor-android-auto/actions)
 
 ## 🎯 Features
 
 - ✅ **Capacitor 7** compatible
-- ✅ UI base per player musicale su Android Auto
+- ✅ **MediaBrowserService** per app musicali
+- ✅ **MediaSession** per controlli multimediali
+- ✅ Supporto completo Android Auto
+- ✅ Notifiche con controlli multimediali
 - ✅ Eventi per bottoni (play, pause, next, previous, stop)
 - ✅ Aggiornamento stato player da JavaScript
+- ✅ Supporto metadata (titolo, artista, album, artwork)
 - ✅ Logging estensivo per debug
 - ✅ Solo Android (plugin nativo)
-- ✅ Android Auto SDK 1.7.0-beta01
 
 ## 📋 Requisiti
 
 - Capacitor 7.x
 - Android API 23+ (Android 6.0+)
-- Java 17
+- Java 17+
 - Node.js 18+
-- Gradle 8.11.1
+- Gradle 8.11.1+
 
 ## 📦 Installazione
 
@@ -39,11 +42,6 @@ Il plugin include già la configurazione necessaria. Nella tua app principale, a
 ```xml
 <application>
     <!-- ... altre configurazioni ... -->
-    
-    <!-- Opzionale: se vuoi personalizzare il nome -->
-    <meta-data
-        android:name="androidx.car.app.minCarApiLevel"
-        android:value="1" />
 </application>
 
 <uses-feature
@@ -58,8 +56,8 @@ Il plugin include già la configurazione necessaria. Nella tua app principale, a
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.yourcompany.app',
-  appName: 'Your App',
+  appId: 'com.yourcompany.musicapp',
+  appName: 'Your Music App',
   webDir: 'dist',
   plugins: {
     AndroidAuto: {
@@ -120,6 +118,7 @@ class MusicPlayerService {
       title: 'Nome Canzone',
       artist: 'Nome Artista',
       album: 'Nome Album',
+      artworkUrl: 'https://example.com/artwork.jpg', // Opzionale
       isPlaying: true,
       duration: 240000, // ms
       position: 30000   // ms
@@ -151,7 +150,11 @@ const listener = await AndroidAuto.addListener('buttonPressed', (data) => {
 await AndroidAuto.updatePlayerState({
   title: 'Song Title',
   artist: 'Artist Name',
-  isPlaying: true
+  album: 'Album Name',
+  artworkUrl: 'https://example.com/cover.jpg',
+  isPlaying: true,
+  duration: 180000,
+  position: 30000
 });
 
 // Cleanup
@@ -171,14 +174,14 @@ await listener.remove();
    ```bash
    ./desktop-head-unit
    ```
-4. Avvia la tua app
+4. Avvia la tua app e riproduci musica
 
 ### Con Auto Reale
 
 1. Collega smartphone all'auto con cavo USB
 2. Avvia Android Auto sull'auto
-3. Apri la tua app
-4. Naviga alla sezione media
+3. Apri la tua app e riproduci musica
+4. L'app apparirà nella sezione **Media** di Android Auto
 
 ### Debug Logs
 
@@ -187,7 +190,7 @@ await listener.remove();
 adb logcat | grep AndroidAuto
 
 # Logs dettagliati con livelli
-adb logcat AndroidAutoPlugin:V AndroidAutoService:V AndroidAutoScreen:V *:S
+adb logcat AndroidAutoPlugin:V AndroidAutoService:V *:S
 
 # Salva logs su file
 adb logcat | grep AndroidAuto > android-auto-logs.txt
@@ -241,6 +244,7 @@ interface PlayerState {
   title: string;        // Titolo traccia
   artist: string;       // Nome artista
   album?: string;       // Nome album (opzionale)
+  artworkUrl?: string;  // URL copertina album (opzionale)
   isPlaying: boolean;   // Stato riproduzione
   duration?: number;    // Durata in ms (opzionale)
   position?: number;    // Posizione in ms (opzionale)
@@ -253,6 +257,7 @@ await AndroidAuto.updatePlayerState({
   title: 'Bohemian Rhapsody',
   artist: 'Queen',
   album: 'A Night at the Opera',
+  artworkUrl: 'https://example.com/queen-cover.jpg',
   isPlaying: true,
   duration: 354000,
   position: 45000
@@ -279,7 +284,7 @@ await AndroidAuto.stopService();
 
 #### `buttonPressed`
 
-Emesso quando l'utente preme un bottone nell'UI Android Auto.
+Emesso quando l'utente preme un bottone nell'UI Android Auto o nella notifica.
 
 **Event Data:**
 ```typescript
@@ -296,6 +301,41 @@ await AndroidAuto.addListener('buttonPressed', (event) => {
 });
 ```
 
+## 🎵 Come Funziona
+
+Questo plugin utilizza **MediaBrowserService** e **MediaSession**, l'approccio standard per app musicali su Android Auto:
+
+1. **MediaBrowserService**: Espone la tua libreria musicale ad Android Auto
+2. **MediaSession**: Gestisce i controlli multimediali (play, pause, next, etc.)
+3. **Notifiche**: Mostra controlli multimediali nella barra delle notifiche
+4. **Android Auto**: Si connette automaticamente al servizio quando disponibile
+
+### Architettura
+
+```
+┌─────────────────┐
+│   Capacitor     │
+│   JavaScript    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ AndroidAuto     │
+│    Plugin       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ MediaBrowser    │
+│    Service      │◄──── Android Auto
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  MediaSession   │◄──── Notifiche
+└─────────────────┘
+```
+
 ## 🔧 Configurazione Avanzata
 
 ### Custom Package Name
@@ -308,7 +348,7 @@ android {
 }
 ```
 
-E `AndroidAutoPlugin.java`:
+E tutti i file Java:
 ```java
 package com.tuodominio.androidauto;
 ```
@@ -331,23 +371,24 @@ npx cap sync android --force
 cd android && ./gradlew clean build
 ```
 
-### Android Auto non si connette
+### Android Auto non mostra l'app
 
-**Problema:** Servizio non appare in Android Auto
-
-**Soluzione:**
-1. Verifica che Android Auto sia installato
-2. Controlla permessi in AndroidManifest.xml
-3. Log: `adb logcat | grep CarAppService`
-
-### Build fallisce su GitHub Actions
-
-**Problema:** Gradle build error
+**Problema:** App non appare nella sezione Media di Android Auto
 
 **Soluzione:**
-- Verifica Java 17 installato
-- Controlla `gradle-wrapper.properties`
-- Vedi artifacts per build reports dettagliati
+1. Verifica che Android Auto sia installato e aggiornato
+2. Controlla che il servizio sia dichiarato correttamente nel Manifest
+3. Assicurati che l'app stia riproducendo musica
+4. Log: `adb logcat | grep MediaBrowser`
+
+### Notifiche non appaiono
+
+**Problema:** Controlli multimediali non visibili
+
+**Soluzione:**
+1. Verifica permessi notifiche
+2. Assicurati di chiamare `updatePlayerState` con `isPlaying: true`
+3. Controlla log: `adb logcat | grep AndroidAutoService`
 
 ### Eventi non ricevuti in JavaScript
 
@@ -364,15 +405,15 @@ AndroidAuto.addListener('buttonPressed', handler);
 
 ## 📊 Versioning
 
-- **1.0.0** - Release iniziale per Capacitor 7
-  - Android Auto SDK 1.7.0-beta01
-  - Gradle 8.11.1
-  - Java 17
-  - compileSdk 35
-
-## 🔒 Sicurezza
-
-⚠️ **Nota di Sicurezza**: Questo plugin usa `HostValidator.ALLOW_ALL_HOSTS_VALIDATOR` per debug. In produzione, considera di implementare una whitelist di host autorizzati.
+- **2.0.0** - Migrazione a MediaBrowserService
+  - ✅ MediaBrowserService invece di CarAppService
+  - ✅ MediaSession per controlli multimediali
+  - ✅ Notifiche con controlli
+  - ✅ Supporto artwork
+  - ✅ Compatibile con standard Android Auto per app musicali
+  
+- **1.0.0** - Release iniziale (deprecata)
+  - ⚠️ Usava CarAppService (non adatto per app musicali)
 
 ## 📄 License
 
@@ -392,12 +433,19 @@ Contributi benvenuti! Per modifiche importanti:
 ## 🙏 Credits
 
 - Capacitor Team
-- Android Auto SDK Team
+- Android Media Team
 - Contributors
 
 ## ⚠️ Limitazioni
 
 - ❌ Solo Android (no iOS/Web)
-- ⚠️ Android Auto SDK in beta
 - ⚠️ Richiede Android 6.0+ (API 23)
-- ℹ️ UI limitata dalle guidelines Android Auto
+- ℹ️ L'UI è gestita automaticamente da Android Auto (standard per app musicali)
+- ℹ️ La libreria musicale deve essere gestita dalla tua app
+
+## 📚 Risorse Utili
+
+- [Android Media API](https://developer.android.com/guide/topics/media-apps/audio-app/building-a-mediabrowserservice)
+- [Android Auto Media Apps](https://developer.android.com/training/cars/media)
+- [MediaSession Guide](https://developer.android.com/guide/topics/media-apps/working-with-a-media-session)
+- [Capacitor Plugins](https://capacitorjs.com/docs/plugins)

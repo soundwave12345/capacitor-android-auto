@@ -1,7 +1,7 @@
 {
   "name": "capacitor-android-auto",
-  "version": "1.0.0",
-  "description": "Capacitor plugin for Android Auto music player UI",
+  "version": "2.0.0",
+  "description": "Capacitor plugin for Android Auto with MediaBrowserService for music apps",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -25,7 +25,12 @@
     "plugin",
     "native",
     "android",
-    "android-auto"
+    "android-auto",
+    "media",
+    "music",
+    "audio",
+    "mediabrowserservice",
+    "mediasession"
   ],
   "scripts": {
     "verify": "npm run verify:android && npm run verify:web",
@@ -36,7 +41,6 @@
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build"
-    
   },
   "devDependencies": {
     "@capacitor/android": "^7.2.0",

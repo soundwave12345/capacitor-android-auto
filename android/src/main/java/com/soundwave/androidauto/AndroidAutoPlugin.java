@@ -36,6 +36,7 @@ public class AndroidAutoPlugin extends Plugin {
         String title = call.getString("title", "Unknown");
         String artist = call.getString("artist", "Unknown");
         String album = call.getString("album", "");
+        String artworkUrl = call.getString("artworkUrl", "");
         Boolean isPlaying = call.getBoolean("isPlaying", false);
         Integer duration = call.getInt("duration", 0);
         Integer position = call.getInt("position", 0);
@@ -43,9 +44,10 @@ public class AndroidAutoPlugin extends Plugin {
         Log.d(TAG, "🎵 Title: " + title);
         Log.d(TAG, "👤 Artist: " + artist);
         Log.d(TAG, "▶️ Playing: " + isPlaying);
+        Log.d(TAG, "🖼️ Artwork: " + artworkUrl);
 
         if (service != null) {
-            service.updatePlayerState(title, artist, album, isPlaying, duration, position);
+            service.updatePlayerState(title, artist, album, artworkUrl, isPlaying, duration, position);
             Log.d(TAG, "✅ Stato aggiornato nel servizio");
         } else {
             Log.w(TAG, "⚠️ Servizio non ancora inizializzato");

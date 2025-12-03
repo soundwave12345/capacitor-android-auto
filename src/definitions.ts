@@ -34,6 +34,7 @@ export interface PlayerState {
   title: string;
   artist: string;
   album?: string;
+  artworkUrl?: string;
   isPlaying: boolean;
   duration?: number;
   position?: number;
