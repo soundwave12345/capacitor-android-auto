@@ -13,6 +13,7 @@ Questa versione trasforma completamente il plugin da **CarAppService** a **Media
 - **Notifiche**: Controlli multimediali automatici nella barra notifiche
 - **Artwork Support**: Supporto per copertine album tramite `artworkUrl`
 - **Integrazione Automatica**: Android Auto riconosce automaticamente l'app come app musicale
+- **Meta-data GMS**: Aggiunto `com.google.android.gms.car.application` per massima compatibilità con tutte le versioni di Android Auto
 
 ### 🗑️ Rimosso
 

@@ -36,18 +36,53 @@ npx cap sync android
 
 ### Android
 
-Il plugin include già la configurazione necessaria. Nella tua app principale, assicurati di avere:
+Il plugin include già la configurazione necessaria nel suo `AndroidManifest.xml`. 
 
-**android/app/src/main/AndroidManifest.xml:**
+**Nota importante**: Il plugin dichiara automaticamente il supporto per Android Auto tramite:
+- `MediaBrowserService` per l'integrazione media
+- `MediaButtonReceiver` per i controlli multimediali
+- Meta-data `com.google.android.gms.car.application` per compatibilità
+
+Se vuoi verificare la configurazione, il manifest del plugin include:
+
+**android/src/main/AndroidManifest.xml (nel plugin):**
 ```xml
-<application>
-    <!-- ... altre configurazioni ... -->
-</application>
-
-<uses-feature
-    android:name="android.hardware.type.automotive"
-    android:required="false" />
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <uses-feature
+        android:name="android.hardware.type.automotive"
+        android:required="false" />
+    
+    <application>
+        <!-- Servizio MediaBrowser per Android Auto -->
+        <service
+            android:name=".AndroidAutoService"
+            android:exported="true"
+            android:label="Music Player">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+        
+        <!-- Receiver per controlli multimediali -->
+        <receiver 
+            android:name="androidx.media.session.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- Dichiarazione supporto Android Auto -->
+        <meta-data 
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+    </application>
+</manifest>
 ```
+
+**Non devi aggiungere nulla al manifest della tua app principale** - il plugin gestisce tutto automaticamente! 🎉
 
 ### Capacitor 7 Configuration
 
