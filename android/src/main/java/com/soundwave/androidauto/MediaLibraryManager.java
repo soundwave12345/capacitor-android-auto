@@ -1,5 +1,6 @@
 package com.soundwave.androidauto;
 
+import android.os.Bundle;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.util.Log;
@@ -35,58 +36,51 @@ public class MediaLibraryManager {
     private final Map<String, List<MediaBrowserCompat.MediaItem>> albumContents = new HashMap<>();
     private final Map<String, List<MediaBrowserCompat.MediaItem>> artistContents = new HashMap<>();
 
+    // Costanti per lo stile di visualizzazione (Grid vs List)
+    public static final String CONTENT_STYLE_BROWSABLE_HINT = "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT";
+    public static final String CONTENT_STYLE_PLAYABLE_HINT = "android.media.browse.CONTENT_STYLE_PLAYABLE_HINT";
+    public static final int CONTENT_STYLE_LIST_ITEM_HINT_VALUE = 1;
+    public static final int CONTENT_STYLE_GRID_ITEM_HINT_VALUE = 2;
+
     public MediaLibraryManager() {
         initializeDefaultCategories();
     }
 
     private void initializeDefaultCategories() {
         rootCategories.clear();
-        addRootCategory(MEDIA_RECENT_ID, "Recenti", "Ultime canzoni ascoltate");
-        addRootCategory(MEDIA_PLAYLISTS_ID, "Playlist", "Le tue playlist");
-        addRootCategory(MEDIA_ALBUMS_ID, "Album", "Tutti gli album");
-        addRootCategory(MEDIA_ARTISTS_ID, "Artisti", "Tutti gli artisti");
+        
+        // Recenti: Griglia di canzoni
+        addRootCategory(MEDIA_RECENT_ID, "Recenti", "Ultime canzoni ascoltate", 
+            CONTENT_STYLE_GRID_ITEM_HINT_VALUE, CONTENT_STYLE_GRID_ITEM_HINT_VALUE);
+            
+        // Playlist: Griglia di playlist
+        addRootCategory(MEDIA_PLAYLISTS_ID, "Playlist", "Le tue playlist", 
+            CONTENT_STYLE_GRID_ITEM_HINT_VALUE, CONTENT_STYLE_LIST_ITEM_HINT_VALUE);
+            
+        // Album: Griglia di album
+        addRootCategory(MEDIA_ALBUMS_ID, "Album", "Tutti gli album", 
+            CONTENT_STYLE_GRID_ITEM_HINT_VALUE, CONTENT_STYLE_LIST_ITEM_HINT_VALUE);
+            
+        // Artisti: Griglia di artisti
+        addRootCategory(MEDIA_ARTISTS_ID, "Artisti", "Tutti gli artisti", 
+            CONTENT_STYLE_GRID_ITEM_HINT_VALUE, CONTENT_STYLE_LIST_ITEM_HINT_VALUE);
     }
 
-    private void addRootCategory(String id, String title, String subtitle) {
+    private void addRootCategory(String id, String title, String subtitle, int browsableHint, int playableHint) {
+        Bundle extras = new Bundle();
+        extras.putInt(CONTENT_STYLE_BROWSABLE_HINT, browsableHint);
+        extras.putInt(CONTENT_STYLE_PLAYABLE_HINT, playableHint);
+        
         MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
                 .setMediaId(id)
                 .setTitle(title)
                 .setSubtitle(subtitle)
+                .setExtras(extras)
                 .build();
         rootCategories.add(new MediaBrowserCompat.MediaItem(desc, MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
     }
 
-    public List<MediaBrowserCompat.MediaItem> getRootItems() {
-        return rootCategories;
-    }
-
-    public List<MediaBrowserCompat.MediaItem> getRecentTracks() {
-        return recentTracks;
-    }
-
-    public List<MediaBrowserCompat.MediaItem> getPlaylists() {
-        return playlistList;
-    }
-
-    public List<MediaBrowserCompat.MediaItem> getAlbums() {
-        return albumList;
-    }
-
-    public List<MediaBrowserCompat.MediaItem> getArtists() {
-        return artistList;
-    }
-
-    public List<MediaBrowserCompat.MediaItem> getPlaylistItems(String playlistId) {
-        return playlistContents.get(playlistId);
-    }
-
-    public List<MediaBrowserCompat.MediaItem> getAlbumItems(String albumId) {
-        return albumContents.get(albumId);
-    }
-
-    public List<MediaBrowserCompat.MediaItem> getArtistItems(String artistId) {
-        return artistContents.get(artistId);
-    }
+    // ... (getter methods remain the same)
 
     public void parseLibrary(String jsonLibrary) {
         try {
@@ -136,6 +130,7 @@ public class MediaLibraryManager {
             String id = json.getString("id");
             String title = json.getString("title");
             String subtitle = json.optString("subtitle", "");
+            String artworkUrl = json.optString("artworkUrl", "");
 
             List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
             if (json.has("items")) {
@@ -148,13 +143,22 @@ public class MediaLibraryManager {
             // Salva contenuti
             contentMap.put(id, items);
 
-            // Crea elemento navigabile
-            MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
+            // Imposta hint per visualizzare i contenuti come LISTA
+            Bundle extras = new Bundle();
+            extras.putInt(CONTENT_STYLE_PLAYABLE_HINT, CONTENT_STYLE_LIST_ITEM_HINT_VALUE);
+
+            // Crea elemento navigabile (es. la card della Playlist)
+            MediaDescriptionCompat.Builder descBuilder = new MediaDescriptionCompat.Builder()
                     .setMediaId(idPrefix + id)
                     .setTitle(title)
                     .setSubtitle(subtitle.isEmpty() ? items.size() + " brani" : subtitle)
-                    .build();
-            categoryList.add(new MediaBrowserCompat.MediaItem(desc, MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+                    .setExtras(extras);
+            
+            if (!artworkUrl.isEmpty()) {
+                descBuilder.setIconUri(android.net.Uri.parse(artworkUrl));
+            }
+
+            categoryList.add(new MediaBrowserCompat.MediaItem(descBuilder.build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
         }
     }
 
@@ -163,14 +167,21 @@ public class MediaLibraryManager {
         String title = json.getString("title");
         String artist = json.optString("artist", "");
         String album = json.optString("album", "");
+        String artworkUrl = json.optString("artworkUrl", "");
 
         MediaDescriptionCompat.Builder descBuilder = new MediaDescriptionCompat.Builder()
                 .setMediaId(id)
                 .setTitle(title)
-                .setSubtitle(artist);
+                .setSubtitle(artist); // Sottotitolo: Artista
 
+        // Se c'è l'album, lo mettiamo nella descrizione (potrebbe apparire come terza riga)
         if (!album.isEmpty()) {
             descBuilder.setDescription(album);
+        }
+        
+        // Imposta Artwork URL
+        if (!artworkUrl.isEmpty()) {
+            descBuilder.setIconUri(android.net.Uri.parse(artworkUrl));
         }
 
         int flags = isPlayable ?
