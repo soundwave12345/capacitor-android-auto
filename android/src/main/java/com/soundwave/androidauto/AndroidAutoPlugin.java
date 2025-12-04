@@ -134,4 +134,15 @@ public class AndroidAutoPlugin extends Plugin {
         notifyListeners("mediaItemSelected", ret);
         Log.d(TAG, "📤 Selezione inviata a JS");
     }
+
+    public void notifySearchRequest(String query) {
+        Log.d(TAG, "🔍 Richiesta ricerca: " + query);
+        
+        JSObject ret = new JSObject();
+        ret.put("query", query);
+        ret.put("timestamp", System.currentTimeMillis());
+        
+        notifyListeners("searchRequest", ret);
+        Log.d(TAG, "📤 Ricerca inviata a JS");
+    }
 }

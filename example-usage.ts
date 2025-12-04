@@ -158,13 +158,51 @@ class MusicPlayerWithLibrary {
             this.playMediaItem(event.mediaId);
         });
 
-        // 3. Imposta la libreria musicale
+        // 3. Registra listener per ricerca vocale
+        await AndroidAuto.addListener('searchRequest', (event) => {
+            console.log(`🔍 Search request: ${event.query}`);
+            this.handleSearch(event.query);
+        });
+
+        // 4. Imposta la libreria musicale
         await this.setLibrary();
 
-        // 4. Mostra lo stato iniziale
+        // 5. Mostra lo stato iniziale
         await this.updateAndroidAutoUI();
 
         console.log('✅ Android Auto inizializzato con libreria');
+    }
+
+    private handleSearch(query: string) {
+        console.log(`🔍 Ricerca per: "${query}"`);
+        const queryLower = query.toLowerCase();
+
+        // Cerca in tutte le tracce
+        let foundTrack = null;
+
+        // Cerca nei recenti
+        foundTrack = this.library.recentTracks.find(t =>
+            t.title.toLowerCase().includes(queryLower) ||
+            t.artist?.toLowerCase().includes(queryLower)
+        );
+
+        // Cerca nelle playlist
+        if (!foundTrack) {
+            for (const playlist of this.library.playlists) {
+                foundTrack = playlist.items?.find(t =>
+                    t.title.toLowerCase().includes(queryLower) ||
+                    t.artist?.toLowerCase().includes(queryLower)
+                );
+                if (foundTrack) break;
+            }
+        }
+
+        if (foundTrack) {
+            console.log(`✅ Trovato: ${foundTrack.title}`);
+            this.playMediaItem(foundTrack.id);
+        } else {
+            console.log('❌ Nessun risultato trovato');
+        }
     }
 
     async setLibrary() {

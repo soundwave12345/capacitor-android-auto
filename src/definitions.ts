@@ -38,6 +38,14 @@ export interface AndroidAutoPlugin {
   ): Promise<PluginListenerHandle>;
 
   /**
+   * Aggiungi listener per richieste di ricerca vocale (es. "Suona Queen")
+   */
+  addListener(
+    eventName: 'searchRequest',
+    listenerFunc: (event: SearchRequestEvent) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
    * Rimuovi tutti i listener
    */
   removeAllListeners(): Promise<void>;
@@ -85,5 +93,10 @@ export interface ButtonPressedEvent {
 
 export interface MediaItemSelectedEvent {
   mediaId: string;
+  timestamp: number;
+}
+
+export interface SearchRequestEvent {
+  query: string;
   timestamp: number;
 }
