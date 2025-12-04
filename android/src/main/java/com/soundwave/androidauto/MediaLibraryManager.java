@@ -80,7 +80,37 @@ public class MediaLibraryManager {
         rootCategories.add(new MediaBrowserCompat.MediaItem(desc, MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
     }
 
-    // ... (getter methods remain the same)
+    public List<MediaBrowserCompat.MediaItem> getRootItems() {
+        return rootCategories;
+    }
+
+    public List<MediaBrowserCompat.MediaItem> getRecentTracks() {
+        return recentTracks;
+    }
+
+    public List<MediaBrowserCompat.MediaItem> getPlaylists() {
+        return playlistList;
+    }
+
+    public List<MediaBrowserCompat.MediaItem> getAlbums() {
+        return albumList;
+    }
+
+    public List<MediaBrowserCompat.MediaItem> getArtists() {
+        return artistList;
+    }
+
+    public List<MediaBrowserCompat.MediaItem> getPlaylistItems(String playlistId) {
+        return playlistContents.get(playlistId);
+    }
+
+    public List<MediaBrowserCompat.MediaItem> getAlbumItems(String albumId) {
+        return albumContents.get(albumId);
+    }
+
+    public List<MediaBrowserCompat.MediaItem> getArtistItems(String artistId) {
+        return artistContents.get(artistId);
+    }
 
     public void parseLibrary(String jsonLibrary) {
         try {
