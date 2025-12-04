@@ -22,19 +22,32 @@ import androidx.core.app.NotificationCompat;
 import androidx.media.MediaBrowserServiceCompat;
 import androidx.media.session.MediaButtonReceiver;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AndroidAutoService extends MediaBrowserServiceCompat {
     private static final String TAG = "AndroidAutoService";
+    
+    // Media IDs
     private static final String MEDIA_ROOT_ID = "root";
-    private static final String EMPTY_MEDIA_ROOT_ID = "empty_root";
+    private static final String MEDIA_RECENT_ID = "recent";
+    private static final String MEDIA_PLAYLISTS_ID = "playlists";
+    private static final String MEDIA_ALBUMS_ID = "albums";
+    private static final String MEDIA_ARTISTS_ID = "artists";
+    
     private static final String NOTIFICATION_CHANNEL_ID = "music_playback";
     private static final int NOTIFICATION_ID = 1;
     
     private MediaSessionCompat mediaSession;
     private PlaybackStateCompat.Builder stateBuilder;
     
+    // Stato player corrente
     private String currentTitle = "No Track";
     private String currentArtist = "Unknown Artist";
     private String currentAlbum = "";
@@ -42,6 +55,15 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
     private boolean isPlaying = false;
     private int duration = 0;
     private int position = 0;
+
+    // Libreria musicale
+    private List<MediaBrowserCompat.MediaItem> recentTracks = new ArrayList<>();
+    private Map<String, List<MediaBrowserCompat.MediaItem>> playlists = new HashMap<>();
+    private Map<String, List<MediaBrowserCompat.MediaItem>> albums = new HashMap<>();
+    private Map<String, List<MediaBrowserCompat.MediaItem>> artists = new HashMap<>();
+    
+    // Categorie root
+    private List<MediaBrowserCompat.MediaItem> rootCategories = new ArrayList<>();
 
     @Override
     public void onCreate() {
@@ -65,7 +87,8 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
                 PlaybackStateCompat.ACTION_PLAY_PAUSE |
                 PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
-                PlaybackStateCompat.ACTION_STOP
+                PlaybackStateCompat.ACTION_STOP |
+                PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
             );
         mediaSession.setPlaybackState(stateBuilder.build());
         
@@ -81,6 +104,9 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
         // Crea canale notifiche
         createNotificationChannel();
         
+        // Inizializza categorie root di default
+        initializeDefaultCategories();
+        
         // Collega al plugin
         if (AndroidAutoPlugin.getInstance() != null) {
             AndroidAutoPlugin.getInstance().setService(this);
@@ -90,13 +116,54 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
         Log.d(TAG, "✅ MediaSession inizializzata");
     }
 
+    private void initializeDefaultCategories() {
+        rootCategories.clear();
+        
+        // Categoria: Recenti
+        MediaDescriptionCompat recentDesc = new MediaDescriptionCompat.Builder()
+            .setMediaId(MEDIA_RECENT_ID)
+            .setTitle("Recenti")
+            .setSubtitle("Ultime canzoni ascoltate")
+            .build();
+        rootCategories.add(new MediaBrowserCompat.MediaItem(recentDesc, 
+            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+        
+        // Categoria: Playlist
+        MediaDescriptionCompat playlistsDesc = new MediaDescriptionCompat.Builder()
+            .setMediaId(MEDIA_PLAYLISTS_ID)
+            .setTitle("Playlist")
+            .setSubtitle("Le tue playlist")
+            .build();
+        rootCategories.add(new MediaBrowserCompat.MediaItem(playlistsDesc, 
+            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+        
+        // Categoria: Album
+        MediaDescriptionCompat albumsDesc = new MediaDescriptionCompat.Builder()
+            .setMediaId(MEDIA_ALBUMS_ID)
+            .setTitle("Album")
+            .setSubtitle("Tutti gli album")
+            .build();
+        rootCategories.add(new MediaBrowserCompat.MediaItem(albumsDesc, 
+            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+        
+        // Categoria: Artisti
+        MediaDescriptionCompat artistsDesc = new MediaDescriptionCompat.Builder()
+            .setMediaId(MEDIA_ARTISTS_ID)
+            .setTitle("Artisti")
+            .setSubtitle("Tutti gli artisti")
+            .build();
+        rootCategories.add(new MediaBrowserCompat.MediaItem(artistsDesc, 
+            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+        
+        Log.d(TAG, "📁 Categorie root inizializzate: " + rootCategories.size());
+    }
+
     @Nullable
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
         Log.d(TAG, "📱 onGetRoot chiamato da: " + clientPackageName);
         
         // Accetta tutte le connessioni (Android Auto, app principale, ecc.)
-        // In produzione, potresti voler validare il clientPackageName
         return new BrowserRoot(MEDIA_ROOT_ID, null);
     }
 
@@ -106,14 +173,206 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
         
         List<MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<>();
         
-        if (MEDIA_ROOT_ID.equals(parentId)) {
-            // Qui potresti caricare la tua libreria musicale
-            // Per ora ritorniamo una lista vuota
-            // L'app principale gestirà la riproduzione
-            Log.d(TAG, "📋 Ritorno lista vuota (gestita dall'app)");
+        switch (parentId) {
+            case MEDIA_ROOT_ID:
+                // Ritorna le categorie principali
+                mediaItems.addAll(rootCategories);
+                Log.d(TAG, "📋 Ritorno " + mediaItems.size() + " categorie root");
+                break;
+                
+            case MEDIA_RECENT_ID:
+                // Ritorna le canzoni recenti
+                mediaItems.addAll(recentTracks);
+                Log.d(TAG, "🕐 Ritorno " + mediaItems.size() + " canzoni recenti");
+                break;
+                
+            case MEDIA_PLAYLISTS_ID:
+                // Ritorna le playlist come categorie navigabili
+                for (Map.Entry<String, List<MediaBrowserCompat.MediaItem>> entry : playlists.entrySet()) {
+                    String playlistId = entry.getKey();
+                    MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
+                        .setMediaId("playlist_" + playlistId)
+                        .setTitle(playlistId)
+                        .setSubtitle(entry.getValue().size() + " brani")
+                        .build();
+                    mediaItems.add(new MediaBrowserCompat.MediaItem(desc, 
+                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+                }
+                Log.d(TAG, "📝 Ritorno " + mediaItems.size() + " playlist");
+                break;
+                
+            case MEDIA_ALBUMS_ID:
+                // Ritorna gli album come categorie navigabili
+                for (Map.Entry<String, List<MediaBrowserCompat.MediaItem>> entry : albums.entrySet()) {
+                    String albumId = entry.getKey();
+                    MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
+                        .setMediaId("album_" + albumId)
+                        .setTitle(albumId)
+                        .setSubtitle(entry.getValue().size() + " brani")
+                        .build();
+                    mediaItems.add(new MediaBrowserCompat.MediaItem(desc, 
+                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+                }
+                Log.d(TAG, "💿 Ritorno " + mediaItems.size() + " album");
+                break;
+                
+            case MEDIA_ARTISTS_ID:
+                // Ritorna gli artisti come categorie navigabili
+                for (Map.Entry<String, List<MediaBrowserCompat.MediaItem>> entry : artists.entrySet()) {
+                    String artistId = entry.getKey();
+                    MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
+                        .setMediaId("artist_" + artistId)
+                        .setTitle(artistId)
+                        .setSubtitle(entry.getValue().size() + " brani")
+                        .build();
+                    mediaItems.add(new MediaBrowserCompat.MediaItem(desc, 
+                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+                }
+                Log.d(TAG, "🎤 Ritorno " + mediaItems.size() + " artisti");
+                break;
+                
+            default:
+                // Gestisci sottocategorie (playlist/album/artista specifici)
+                if (parentId.startsWith("playlist_")) {
+                    String playlistName = parentId.substring(9);
+                    List<MediaBrowserCompat.MediaItem> items = playlists.get(playlistName);
+                    if (items != null) {
+                        mediaItems.addAll(items);
+                    }
+                } else if (parentId.startsWith("album_")) {
+                    String albumName = parentId.substring(6);
+                    List<MediaBrowserCompat.MediaItem> items = albums.get(albumName);
+                    if (items != null) {
+                        mediaItems.addAll(items);
+                    }
+                } else if (parentId.startsWith("artist_")) {
+                    String artistName = parentId.substring(7);
+                    List<MediaBrowserCompat.MediaItem> items = artists.get(artistName);
+                    if (items != null) {
+                        mediaItems.addAll(items);
+                    }
+                }
+                Log.d(TAG, "📂 Ritorno " + mediaItems.size() + " elementi per " + parentId);
+                break;
         }
         
         result.sendResult(mediaItems);
+    }
+
+    public void setMediaLibrary(String jsonLibrary) {
+        Log.d(TAG, "📚 Impostazione libreria musicale");
+        
+        try {
+            JSONObject library = new JSONObject(jsonLibrary);
+            
+            // Carica canzoni recenti
+            if (library.has("recentTracks")) {
+                JSONArray recentArray = library.getJSONArray("recentTracks");
+                recentTracks.clear();
+                for (int i = 0; i < recentArray.length(); i++) {
+                    JSONObject track = recentArray.getJSONObject(i);
+                    recentTracks.add(createMediaItem(track, true));
+                }
+                Log.d(TAG, "✅ Caricate " + recentTracks.size() + " canzoni recenti");
+            }
+            
+            // Carica playlist
+            if (library.has("playlists")) {
+                JSONArray playlistsArray = library.getJSONArray("playlists");
+                playlists.clear();
+                for (int i = 0; i < playlistsArray.length(); i++) {
+                    JSONObject playlist = playlistsArray.getJSONObject(i);
+                    String playlistId = playlist.getString("id");
+                    String playlistTitle = playlist.getString("title");
+                    
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    if (playlist.has("items")) {
+                        JSONArray itemsArray = playlist.getJSONArray("items");
+                        for (int j = 0; j < itemsArray.length(); j++) {
+                            items.add(createMediaItem(itemsArray.getJSONObject(j), true));
+                        }
+                    }
+                    playlists.put(playlistTitle, items);
+                }
+                Log.d(TAG, "✅ Caricate " + playlists.size() + " playlist");
+            }
+            
+            // Carica album
+            if (library.has("albums")) {
+                JSONArray albumsArray = library.getJSONArray("albums");
+                albums.clear();
+                for (int i = 0; i < albumsArray.length(); i++) {
+                    JSONObject album = albumsArray.getJSONObject(i);
+                    String albumTitle = album.getString("title");
+                    
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    if (album.has("items")) {
+                        JSONArray itemsArray = album.getJSONArray("items");
+                        for (int j = 0; j < itemsArray.length(); j++) {
+                            items.add(createMediaItem(itemsArray.getJSONObject(j), true));
+                        }
+                    }
+                    albums.put(albumTitle, items);
+                }
+                Log.d(TAG, "✅ Caricati " + albums.size() + " album");
+            }
+            
+            // Carica artisti
+            if (library.has("artists")) {
+                JSONArray artistsArray = library.getJSONArray("artists");
+                artists.clear();
+                for (int i = 0; i < artistsArray.length(); i++) {
+                    JSONObject artist = artistsArray.getJSONObject(i);
+                    String artistName = artist.getString("title");
+                    
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    if (artist.has("items")) {
+                        JSONArray itemsArray = artist.getJSONArray("items");
+                        for (int j = 0; j < itemsArray.length(); j++) {
+                            items.add(createMediaItem(itemsArray.getJSONObject(j), true));
+                        }
+                    }
+                    artists.put(artistName, items);
+                }
+                Log.d(TAG, "✅ Caricati " + artists.size() + " artisti");
+            }
+            
+            // Notifica che la libreria è cambiata
+            notifyChildrenChanged(MEDIA_ROOT_ID);
+            
+            Log.d(TAG, "🎉 Libreria musicale aggiornata con successo");
+            
+        } catch (JSONException e) {
+            Log.e(TAG, "❌ Errore parsing libreria musicale", e);
+        }
+    }
+
+    private MediaBrowserCompat.MediaItem createMediaItem(JSONObject json, boolean isPlayable) throws JSONException {
+        String id = json.getString("id");
+        String title = json.getString("title");
+        String artist = json.optString("artist", "");
+        String album = json.optString("album", "");
+        String artworkUrl = json.optString("artworkUrl", "");
+        
+        MediaDescriptionCompat.Builder descBuilder = new MediaDescriptionCompat.Builder()
+            .setMediaId(id)
+            .setTitle(title)
+            .setSubtitle(artist);
+        
+        if (!album.isEmpty()) {
+            descBuilder.setDescription(album);
+        }
+        
+        // TODO: Caricare artwork da URL se necessario
+        // if (!artworkUrl.isEmpty()) {
+        //     descBuilder.setIconUri(Uri.parse(artworkUrl));
+        // }
+        
+        int flags = isPlayable ? 
+            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE : 
+            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE;
+        
+        return new MediaBrowserCompat.MediaItem(descBuilder.build(), flags);
     }
 
     public void updatePlayerState(String title, String artist, String album, 
@@ -149,9 +408,6 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
             .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, currentAlbum)
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration);
-        
-        // Se hai un'immagine di copertina, aggiungila qui
-        // metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, albumArt);
         
         mediaSession.setMetadata(metadataBuilder.build());
         Log.d(TAG, "📝 Metadata aggiornati");
@@ -217,7 +473,6 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOnlyAlertOnce(true);
 
-        // Aggiungi azioni
         builder.addAction(new NotificationCompat.Action(
             android.R.drawable.ic_media_previous,
             "Previous",
@@ -271,7 +526,6 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
         super.onDestroy();
     }
 
-    // Callback per gestire i controlli multimediali
     private class MediaSessionCallback extends MediaSessionCompat.Callback {
         @Override
         public void onPlay() {
@@ -306,7 +560,7 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
         @Override
         public void onPlayFromMediaId(String mediaId, Bundle extras) {
             Log.d(TAG, "🎵 onPlayFromMediaId: " + mediaId);
-            // Gestisci riproduzione da ID specifico
+            notifyMediaItemSelected(mediaId);
         }
     }
 
@@ -316,6 +570,17 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
         if (AndroidAutoPlugin.getInstance() != null) {
             AndroidAutoPlugin.getInstance().notifyButtonPressed(button);
             Log.d(TAG, "📤 Evento inoltrato al plugin");
+        } else {
+            Log.w(TAG, "⚠️ Plugin non disponibile");
+        }
+    }
+
+    private void notifyMediaItemSelected(String mediaId) {
+        Log.d(TAG, "🎵 Media item selezionato: " + mediaId);
+        
+        if (AndroidAutoPlugin.getInstance() != null) {
+            AndroidAutoPlugin.getInstance().notifyMediaItemSelected(mediaId);
+            Log.d(TAG, "📤 Selezione inoltrata al plugin");
         } else {
             Log.w(TAG, "⚠️ Plugin non disponibile");
         }

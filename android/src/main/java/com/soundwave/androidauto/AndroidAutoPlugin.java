@@ -86,6 +86,28 @@ public class AndroidAutoPlugin extends Plugin {
         }
     }
 
+    @PluginMethod
+    public void setMediaLibrary(PluginCall call) {
+        Log.d(TAG, "📚 setMediaLibrary chiamato da JS");
+        
+        try {
+            String libraryJson = call.getData().toString();
+            Log.d(TAG, "📦 Dati libreria ricevuti");
+            
+            if (service != null) {
+                service.setMediaLibrary(libraryJson);
+                Log.d(TAG, "✅ Libreria aggiornata nel servizio");
+                call.resolve();
+            } else {
+                Log.w(TAG, "⚠️ Servizio non ancora inizializzato");
+                call.reject("Servizio non disponibile");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Errore impostazione libreria: " + e.getMessage());
+            call.reject("Errore impostazione libreria", e);
+        }
+    }
+
     public void setService(AndroidAutoService service) {
         this.service = service;
         Log.d(TAG, "🔗 Servizio collegato al plugin");
@@ -100,5 +122,16 @@ public class AndroidAutoPlugin extends Plugin {
         
         notifyListeners("buttonPressed", ret);
         Log.d(TAG, "📤 Evento inviato a JS");
+    }
+
+    public void notifyMediaItemSelected(String mediaId) {
+        Log.d(TAG, "🎵 Media item selezionato: " + mediaId);
+        
+        JSObject ret = new JSObject();
+        ret.put("mediaId", mediaId);
+        ret.put("timestamp", System.currentTimeMillis());
+        
+        notifyListeners("mediaItemSelected", ret);
+        Log.d(TAG, "📤 Selezione inviata a JS");
     }
 }

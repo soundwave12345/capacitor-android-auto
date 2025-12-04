@@ -9,9 +9,11 @@ Plugin Capacitor 7 per integrare Android Auto con **MediaBrowserService** per ap
 - ✅ **Capacitor 7** compatible
 - ✅ **MediaBrowserService** per app musicali
 - ✅ **MediaSession** per controlli multimediali
+- ✅ **Libreria Musicale Navigabile** - Mostra recenti, playlist, album, artisti
 - ✅ Supporto completo Android Auto
 - ✅ Notifiche con controlli multimediali
 - ✅ Eventi per bottoni (play, pause, next, previous, stop)
+- ✅ Eventi per selezione elementi dalla libreria
 - ✅ Aggiornamento stato player da JavaScript
 - ✅ Supporto metadata (titolo, artista, album, artwork)
 - ✅ Logging estensivo per debug
@@ -195,6 +197,67 @@ await AndroidAuto.updatePlayerState({
 // Cleanup
 await listener.remove();
 ```
+
+### Popolare la Libreria Musicale
+
+Per evitare la schermata vuota in Android Auto, imposta la libreria musicale:
+
+```typescript
+import { AndroidAuto } from 'capacitor-android-auto';
+
+// Imposta la libreria con recenti, playlist, album, artisti
+await AndroidAuto.setMediaLibrary({
+  // Canzoni recenti
+  recentTracks: [
+    {
+      id: 'track_1',
+      title: 'Bohemian Rhapsody',
+      artist: 'Queen',
+      album: 'A Night at the Opera',
+      artworkUrl: 'https://example.com/cover.jpg',
+      duration: 354000,
+      isPlayable: true
+    },
+    {
+      id: 'track_2',
+      title: 'Stairway to Heaven',
+      artist: 'Led Zeppelin',
+      duration: 482000,
+      isPlayable: true
+    }
+  ],
+  
+  // Playlist (opzionale)
+  playlists: [
+    {
+      id: 'playlist_1',
+      title: 'Rock Classics',
+      subtitle: '50 brani',
+      items: [
+        {
+          id: 'track_3',
+          title: 'Sweet Child O\' Mine',
+          artist: 'Guns N\' Roses',
+          isPlayable: true
+        }
+      ]
+    }
+  ]
+});
+
+// Ascolta quando l'utente seleziona una canzone
+await AndroidAuto.addListener('mediaItemSelected', (event) => {
+  console.log('Canzone selezionata:', event.mediaId);
+  
+  // Trova e riproduci la canzone
+  const track = findTrackById(event.mediaId);
+  if (track) {
+    playTrack(track);
+  }
+});
+```
+
+**📚 Vedi [LIBRARY_GUIDE.md](LIBRARY_GUIDE.md) per una guida completa!**
 
 ## 🧪 Testing
 
