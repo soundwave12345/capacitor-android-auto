@@ -7,8 +7,11 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -26,10 +29,16 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class AndroidAutoService extends MediaBrowserServiceCompat {
     private static final String TAG = "AndroidAutoService";
@@ -47,11 +56,16 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
     private MediaSessionCompat mediaSession;
     private PlaybackStateCompat.Builder stateBuilder;
     
+    // Executor per operazioni asincrone
+    private ExecutorService executorService;
+    private Handler mainHandler;
+    
     // Stato player corrente
     private String currentTitle = "No Track";
     private String currentArtist = "Unknown Artist";
     private String currentAlbum = "";
     private String currentArtworkUrl = "";
+    private Bitmap currentArtwork = null;
     private boolean isPlaying = false;
     private int duration = 0;
     private int position = 0;
@@ -69,6 +83,10 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "🚀 MediaBrowserService creato");
+        
+        // Inizializza executor per operazioni asincrone
+        executorService = Executors.newFixedThreadPool(2);
+        mainHandler = new Handler(Looper.getMainLooper());
         
         // Crea MediaSession
         mediaSession = new MediaSessionCompat(this, TAG);
@@ -385,10 +403,19 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
         this.currentTitle = title;
         this.currentArtist = artist;
         this.currentAlbum = album;
-        this.currentArtworkUrl = artworkUrl;
         this.isPlaying = playing;
         this.duration = dur;
         this.position = pos;
+        
+        // Carica artwork se l'URL è cambiato
+        if (!artworkUrl.equals(this.currentArtworkUrl)) {
+            this.currentArtworkUrl = artworkUrl;
+            if (!artworkUrl.isEmpty()) {
+                loadArtworkAsync(artworkUrl);
+            } else {
+                this.currentArtwork = null;
+            }
+        }
         
         // Aggiorna metadata
         updateMetadata();
@@ -402,12 +429,84 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
         Log.d(TAG, "✅ Stato aggiornato");
     }
 
+    private void loadArtworkAsync(String url) {
+        Log.d(TAG, "🖼️ Caricamento artwork da: " + url);
+        
+        executorService.execute(() -> {
+            try {
+                Bitmap bitmap = downloadBitmap(url);
+                if (bitmap != null) {
+                    // Ridimensiona se troppo grande
+                    bitmap = scaleBitmap(bitmap, 512, 512);
+                    
+                    final Bitmap finalBitmap = bitmap;
+                    mainHandler.post(() -> {
+                        currentArtwork = finalBitmap;
+                        Log.d(TAG, "✅ Artwork caricato");
+                        
+                        // Aggiorna metadata e notifica con la nuova immagine
+                        updateMetadata();
+                        updateNotification();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Errore caricamento artwork", e);
+            }
+        });
+    }
+
+    private Bitmap downloadBitmap(String urlString) {
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL(urlString);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.setDoInput(true);
+            connection.connect();
+            
+            InputStream input = connection.getInputStream();
+            return BitmapFactory.decodeStream(input);
+        } catch (IOException e) {
+            Log.e(TAG, "Errore download bitmap", e);
+            return null;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private Bitmap scaleBitmap(Bitmap bitmap, int maxWidth, int maxHeight) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        
+        if (width <= maxWidth && height <= maxHeight) {
+            return bitmap;
+        }
+        
+        float scale = Math.min(
+            (float) maxWidth / width,
+            (float) maxHeight / height
+        );
+        
+        int newWidth = Math.round(width * scale);
+        int newHeight = Math.round(height * scale);
+        
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+    }
+
     private void updateMetadata() {
         MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder()
             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentTitle)
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
             .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, currentAlbum)
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration);
+            
+        if (currentArtwork != null) {
+            metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, currentArtwork);
+            metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, currentArtwork);
+        }
         
         mediaSession.setMetadata(metadataBuilder.build());
         Log.d(TAG, "📝 Metadata aggiornati");
@@ -472,6 +571,10 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOnlyAlertOnce(true);
+            
+        if (currentArtwork != null) {
+            builder.setLargeIcon(currentArtwork);
+        }
 
         builder.addAction(new NotificationCompat.Action(
             android.R.drawable.ic_media_previous,
