@@ -163,6 +163,12 @@ public class MediaLibraryManager {
             String artworkUrl = json.optString("artworkUrl", "");
 
             List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+            
+            // Aggiungi pulsante Shuffle come primo elemento
+            MediaBrowserCompat.MediaItem shuffleButton = createShuffleButton(idPrefix + id, artworkUrl);
+            items.add(shuffleButton);
+            
+            // Aggiungi le canzoni con artwork
             if (json.has("items")) {
                 JSONArray itemsArray = json.getJSONArray("items");
                 for (int j = 0; j < itemsArray.length(); j++) {
@@ -170,7 +176,7 @@ public class MediaLibraryManager {
                 }
             }
 
-            // Salva contenuti
+            // Salva contenuti (con shuffle button incluso)
             contentMap.put(id, items);
 
             // Imposta hint per visualizzare i contenuti come LISTA
@@ -181,7 +187,7 @@ public class MediaLibraryManager {
             MediaDescriptionCompat.Builder descBuilder = new MediaDescriptionCompat.Builder()
                     .setMediaId(idPrefix + id)
                     .setTitle(title)
-                    .setSubtitle(subtitle.isEmpty() ? items.size() + " brani" : subtitle)
+                    .setSubtitle(subtitle.isEmpty() ? (items.size() - 1) + " brani" : subtitle)
                     .setExtras(extras);
             
             if (!artworkUrl.isEmpty()) {
@@ -190,6 +196,27 @@ public class MediaLibraryManager {
 
             categoryList.add(new MediaBrowserCompat.MediaItem(descBuilder.build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
         }
+    }
+
+    private MediaBrowserCompat.MediaItem createShuffleButton(String parentId, String artworkUrl) {
+        // Crea un ID speciale per il pulsante shuffle
+        String shuffleId = "shuffle_" + parentId;
+        
+        MediaDescriptionCompat.Builder descBuilder = new MediaDescriptionCompat.Builder()
+                .setMediaId(shuffleId)
+                .setTitle("🔀 Riproduci in modo casuale")
+                .setSubtitle("Shuffle");
+        
+        // Usa l'artwork della playlist/album se disponibile
+        if (!artworkUrl.isEmpty()) {
+            descBuilder.setIconUri(android.net.Uri.parse(artworkUrl));
+        }
+        
+        // Rendi il pulsante PLAYABLE (non browsable)
+        return new MediaBrowserCompat.MediaItem(
+            descBuilder.build(), 
+            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+        );
     }
 
     private MediaBrowserCompat.MediaItem createMediaItem(JSONObject json, boolean isPlayable) throws JSONException {
