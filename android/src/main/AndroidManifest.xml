@@ -14,9 +14,9 @@
             android:label="Music Player">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
-                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH"
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.APP_MUSIC"
+                <category android:name="android.intent.category.APP_MUSIC" />
             </intent-filter>
             
             <!-- Metadata per supportare la ricerca vocale -->
