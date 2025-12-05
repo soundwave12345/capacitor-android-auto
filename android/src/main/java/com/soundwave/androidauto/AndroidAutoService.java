@@ -93,7 +93,13 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
         Log.d(TAG, "📱 onGetRoot chiamato da: " + clientPackageName);
-        return new BrowserRoot(MediaLibraryManager.MEDIA_ROOT_ID, null);
+        
+        // Bundle per dichiarare le capacità del servizio
+        Bundle extras = new Bundle();
+        extras.putBoolean("android.media.browse.SEARCH_SUPPORTED", true);
+        extras.putBoolean("android.media.browse.CONTENT_STYLE_SUPPORTED", true);
+        
+        return new BrowserRoot(MediaLibraryManager.MEDIA_ROOT_ID, extras);
     }
 
     @Override
@@ -137,9 +143,13 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
 
     @Override
     public void onSearch(@NonNull String query, Bundle extras, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
-        Log.d(TAG, "🔍 onSearch: " + query);
+        Log.d(TAG, "🔍🔍🔍 onSearch CHIAMATO!");
+        Log.d(TAG, "🔍 Query: " + query);
+        Log.d(TAG, "🔍 Extras: " + (extras != null ? extras.toString() : "null"));
+        
         List<MediaBrowserCompat.MediaItem> searchResults = libraryManager.search(query);
         Log.d(TAG, "🔍 Trovati " + searchResults.size() + " risultati");
+        
         result.sendResult(searchResults);
     }
 
@@ -260,11 +270,17 @@ public class AndroidAutoService extends MediaBrowserServiceCompat {
 
         @Override
         public void onPlayFromSearch(String query, Bundle extras) {
-            Log.d(TAG, "🔍 onPlayFromSearch: " + query);
+            Log.d(TAG, "🔍🔍🔍 onPlayFromSearch CHIAMATO!");
+            Log.d(TAG, "🔍 Query: " + query);
+            Log.d(TAG, "🔍 Extras: " + (extras != null ? extras.toString() : "null"));
+            
             if (query == null || query.isEmpty()) {
+                Log.d(TAG, "🔍 Query vuota, avvio riproduzione generica");
                 notifyButtonPressed("play");
                 return;
             }
+            
+            Log.d(TAG, "🔍 Invio richiesta ricerca al plugin");
             if (AndroidAutoPlugin.getInstance() != null) {
                 AndroidAutoPlugin.getInstance().notifySearchRequest(query);
             }
